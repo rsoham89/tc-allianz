@@ -74,6 +74,9 @@ Next step is to ensure that you have configured your aws profile so that can run
 ```
 
 Download the code from github: 
+```bash
+git clone https://github.com/rsoham89/tc-allianz.git
+```
 
 ```bash
 # make alias of terraform init, plan and apply

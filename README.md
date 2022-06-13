@@ -194,4 +194,88 @@ This contains four major parts
   - Istio Ingress - To accept traffic from outside the cluster.
   - Gateway: To connect the ingress to the virtual service.
 
+## Application LLD Description
+
+The namespace ```interview``` was created with the label ```istio-injection: enabled```. This helps istio to create an envoy-proxy sidecar on every pod for a deployment in that namespace.
+
+Three different deployments were created with three configmaps, one each for the components de, es and fr.
+All the pods were labeled with 
+
+```svc-name: hello-world ``` which the selector of the service ```hello-world``` uses to route the traffic in a **round-robin** manner.
+
+At this point of time if you hit the service then you can see the traffic getting routed to all three pods in a round robin fashion.
+
+The next ask was path based routing. So the **virtual service** was introduced with http redirect based on uri.
+
+```
+http:
+    - match:
+        - uri:
+            prefix: "/eu"
+      rewrite:
+        uri: "/"
+      route:
+        - destination:
+            host: hello-world.interview.svc.cluster.local
+            port:
+              number: 80
+    - match:
+        - uri:
+            prefix: "/de"
+      rewrite:
+        uri: "/"
+      route:
+        - destination:
+            host: hello-world.interview.svc.cluster.local
+            port:
+              number: 80
+            subset: de
+    - match:
+        - uri:
+            prefix: "/fr"
+      rewrite:
+        uri: "/"
+      route:
+        - destination:
+            host: hello-world.interview.svc.cluster.local
+            port:
+              number: 80
+            subset: fr
+    - match:
+        - uri:
+            prefix: "/es"
+      rewrite:
+        uri: "/"
+      route:
+        - destination:
+            host: hello-world.interview.svc.cluster.local
+            port:
+              number: 80
+            subset: es
+```
+
+And the subsets were defined as a part of the **destination rule**.
+The pods were labels with ```version: de/es/fr``` and the destination subsets were created based on the same.
+
+```
+  subsets:
+    - name: de
+      labels:
+        version: de
+    - name: fr
+      labels:
+        version: fr
+    - name: es
+      labels:
+        version: es
+```
+
+This ensured if the service is requested anywhere from the service mesh then it will distribute based on the uri.
+
+
+
+
+
+
+
 

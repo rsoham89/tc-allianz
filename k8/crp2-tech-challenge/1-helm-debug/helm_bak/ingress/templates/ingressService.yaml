@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: istio-ingressgateway-internal
+  namespace: istio-system
+  annotations:
+    "service.beta.kubernetes.io/aws-load-balancer-internal": :true"
+  labels:
+    app: istio-internal-ingressgateway
+    istio: internal-ingressgateway
+    release: istio
+spec:
+  ports:
+    - name: http
+      port: 80
+      protocol: TCP
+      targetPort: 8080
+  selector:
+    app: istio-internal-ingressgateway
+  type: LoadBalancer

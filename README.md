@@ -124,7 +124,7 @@ helm install istiod istio/istiod -n istio-system --wait
 
 
 
-cd ../kubernetes/crp2-tech-challenge/1-helm-debug/helm/namespace
+cd ../k8/crp2-tech-challenge/1-helm-debug/helm/namespace
 helm upgrade --install --values values.yaml namespace-builder .
 
 cd ../app/

@@ -1,0 +1,55 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: hello-world
+  namespace: interview
+spec:
+  hosts:
+    - hello-world.interview.svc.cluster.local
+    - test.com
+  gateways:
+    - hello-world-gateway
+  http:
+    - match:
+        - uri:
+            prefix: "/eu"
+      rewrite:
+        uri: "/"
+      route:
+        - destination:
+            host: hello-world.interview.svc.cluster.local
+            port:
+              number: 80
+    - match:
+        - uri:
+            prefix: "/de"
+      rewrite:
+        uri: "/"
+      route:
+        - destination:
+            host: hello-world.interview.svc.cluster.local
+            port:
+              number: 80
+            subset: de
+    - match:
+        - uri:
+            prefix: "/fr"
+      rewrite:
+        uri: "/"
+      route:
+        - destination:
+            host: hello-world.interview.svc.cluster.local
+            port:
+              number: 80
+            subset: fr
+    - match:
+        - uri:
+            prefix: "/es"
+      rewrite:
+        uri: "/"
+      route:
+        - destination:
+            host: hello-world.interview.svc.cluster.local
+            port:
+              number: 80
+            subset: es

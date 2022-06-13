@@ -1,0 +1,17 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: hello-world
+  namespace: interview
+spec:
+  host: hello-world
+  subsets:
+    - name: de
+      labels:
+        version: de
+    - name: fr
+      labels:
+        version: fr
+    - name: es
+      labels:
+        version: es

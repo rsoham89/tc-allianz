@@ -1,0 +1,12 @@
+image:
+  name: hello-world
+  tag: latest
+  registry: adamgolab
+
+service:
+  port: 8000
+  targetPort: 80
+
+namespace:
+  name: interview
+  label: enabled

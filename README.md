@@ -272,6 +272,13 @@ The pods were labels with ```version: de/es/fr``` and the destination subsets we
 
 This ensured if the service is requested anywhere from the service mesh then it will distribute based on the uri.
 
+The next step was to create the ingress and the gateway. We had to configure the virtual service to add the gateway 
+```gateways: - hello-world-gateway``` and in the gateway the ingress controller was added as well as the virtual service.
+The ingress controller is a simple one that gets request on top of the nodeport and route to the hello-world  service to port 80.
+
+**Hiccup**
+
+In order to create an internal ALB even after annotation and the tag in the aws subnet, the tag ```kubernetes.io/cluster/app_cluster``` needed to be changed from **shared** to **owned**. Else the Load Balancder service was generating with External IP in the *pending* state.
 
 
 

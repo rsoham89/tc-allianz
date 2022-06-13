@@ -17,6 +17,12 @@ For the MVP the below tools are selected
 
 **Kubectl** | v1.22 | [Click here to install](https://kubernetes.io/docs/tasks/tools/install-kubectl-macos/)
 
+**Helm** | v3.8 | [Click here to install](https://helm.sh/docs/intro/install/)
+
+**Hiccup**
+
+Please note not to use Helm version 3.9 as that has some potential bugs with the api version (https://github.com/helm/helm/issues/10975).
+
 
 ## Application Architecture 
 
@@ -79,235 +85,111 @@ git clone https://github.com/rsoham89/tc-allianz.git
 ```
 
 ```bash
-# make alias of terraform init, plan and apply
-  alias tfi='terraform init'
-  alias tfp='terraform plan'
-  alias tfa='terraform apply'
 
-# assuming the home path as the base path
-  cd ~/allianz/allianz_terraform/dev/storage_backup
-# open vairables.tf and provide the necessary input
-  tfi
-  tfp
-  tfa
+cd tc-allianz/scripts
+
+# To create the backend, aws network and eks cluster run the init.sh
+
+bash init.sh
 
 ```
+This will take 10-12 minutes of time. Once the terraform completes creating the infrastructure you can run 
 
-Next is to create the neallianzork. Traverse to 
+```
+cd ../terraform/infrastructure/
+terraform state list
+```
+To list all the aws objects you just created via terraform.
+
+Once this is ready run the istio-setup.sh command to create all the kubernetes components
 
 ```bash
- cd ~/allianz/allianz_terraform/dev/neallianzork/
- 
-#modify the variables.tf as per your desired configuration
+cd -
+bash istio-setup.sh
 
-tfi
-
-# the terraform init will configure the remote backend
-
-tfp
-
-#check for all the resources
-tfa
-
-#once done, this will show Apply Completed
 ```
 
-Now we are set to create the compute objects and the secret manager
+**Lets discuss in details what components are created**
 
 ```bash
-# we'll create the secret manager first
+$ cat istio-setup.sh
 
- cd ~/allianz/allianz_terraform/dev/secret-manager/
- 
-#modify the variables.tf as per your desired configuration
+aws eks update-kubeconfig --name app_cluster
+helm repo add istio https://istio-release.storage.googleapis.com/charts
+helm repo update
+kubectl create namespace istio-system
+helm install istio-base istio/base -n istio-system
+helm install istiod istio/istiod -n istio-system --wait
 
-tfi
 
-# the terraform init will configure the remote backend
 
-tfp
 
-#check for all the resources
-tfa
+cd ../kubernetes/crp2-tech-challenge/1-helm-debug/helm/namespace
+helm upgrade --install --values values.yaml namespace-builder .
 
-#once done, this will show Apply Completed
+cd ../app/
+
+
+helm upgrade --install --values values.yaml --values de/values.yaml app-de  .
+helm upgrade --install --values values.yaml --values es/values.yaml app-es .
+helm upgrade --install --values values.yaml --values fr/values.yaml app-fr .
+
+cd ../service
+helm upgrade --install --values values.yaml service-app .
+
+
+cd ../ingress
+helm upgrade --install --values values.yaml ingress-app .
 ```
 
-Add the application token manually in the secret manager  using aws cli
+The ```aws eks update-kubeconfig --name app_cluster``` configures the kubernetes config file with the eks cluster which is recently created.
+Once the cluster is configured the next step is to create the istio components. We are using Helm to create the istio components. There are two major components to be installed 
 
+- istio-base
+- istiod
 
-Below is the command to store the key 
-
-```bash
-aws secretsmanager put-secret-value --secret-id <name_of_the_secret_id_(terraform)> --secret-string "<the token>"
-```
-
-and  to retrieve the key
-
-```bash
-aws secretsmanager get-secret-value --secret-id <name_of_secret> | jq .'SecretString' | sed 's/\"//g' 
-```
-
-Now we will create the bastion server
-
-```bash
-# go to the path of bastion server
-
- cd ~/allianz/allianz_terraform/dev/bastion/
- 
-#modify the variables.tf as per your desired configuration
-
-tfi
-
-# the terraform init will configure the remote backend
-
-tfp
-
-#check for all the resources
-tfa
-
-#once done, this will show Apply Completed
-```
-
-## Creating the base image for the application deployment
-
-We will now take a break from terraform and create the base image. For this we will be using packer.
-
-Go to the allianz_packer directory
-
-```bash
-# go to the path of bastion server
-
- cd ~/allianz/allianz_packer/
-
-#update the vpc_id and subnet_id sections with the vpc id and one of the public subnet id
-
-# validate packer
-
-packer validate packer.json
-
-# This should give you "The configuration is valid."
-
-# then build the image
-
-packer build packer.json
-```
-
-Once the build completes, store the **ami_id**. This image will be used as the base image for the 3 applications.
-
-## Deploying the compute section
-
-First we will deploy the Load Balancer, Target Group and Target Group listeners. The reason for this is we would be needed the *load balancer dns* of the newsfeed and quotes server to be in the startup script of the front-end app.
-
-**Please select allianzo subnets from allianzo different availabity zones to and add in the variables.tf file** for the load balancers.
-
-```bash
-
- ### we will deploy the front end alb
-
-cd ~/allianz/allianz_terraform/dev/front-end-tf/elb/
-
-vi variables.tf
------------------------
-variable "subnet_filter" {
-
-  type = map(any)
-  default = {
-    name   = "tag:Name"
-    value1 = "<Enter subnet 1>"
-    value3 = "<Enter Subnet 2>"
-  }
-}
-```
-
-Continue with the **tfi, tfp and tfa**
-
-Once the load balancer and the target groups are created go to the listener directory and apply **tfi, tfp, tfa**
-
-
-```bash
-cd ~/allianz/allianz_terraform/dev/front-end-tf/elb/listener/
-
-tfi
-tfp
-tfa
-```
-
-*Repeat the same for Newsfeed and Quotes server*
-
-The only difference is we will be implementing  **internal load balancers** in these allianzo, so we will be deploying in **private subnets**. Please configure the variables.tf accordingly
-
-Path:
-
-Newsfeed: **allianz/allianz_terraform/dev/newsfeed-tf**
-
-Quotes: **allianz/allianz_terraform/dev/quotes**
-
-Once all your load balancers are deployed and your dns is available update your startup script with the dns of the load balancers.
-
-```bash
-
-cd ~/allianz/allianz_terraform/dev/scripts
-vi startup_FE.sh
-.
-.
-.
-export STATIC_URL=<url_of_frontend>:8000
-export QUOTE_SERVICE_URL=<url_of_Quotes>
-export NEWSFEED_SERVICE_URL=<url_of_Newsfeed>
-.
-.
-.
-```
-
-**Assumption:**  *You have a key pair generated in the name of allianz and you have allianz.pem in your local and the public key in the aws key-pair*
-
-If you want to replace this with any other key pair please mention the same in here 
-
-**~/allianz/allianz_terraform/tf-modules/ec2**
-
-```bash
-cat variables.tf
-.
-.
-.
-
-variable "key_name" {
-  type = "string"
-  default = "allianz" # replace here
-
-}
-.
-.
-.
+The below section takes care of that - 
 
 ```
-
-now we move to the directories of the quotes, newsfeed and front end ec2 and do the terraform trio:
-
-
-```bash
-# go to the newsfeed directory
-cd ~/allianz/allianz_terraform/dev/newsfeed-tf/ec2/
-tfi
-tfp
-tpa
-
-#go to the quotes directory
-~/allianz/allianz_terraform/dev/quotes-tf/ec2/
-
-tfi
-tfp
-tpa
-
-#go to the front end directory
-~/allianz/allianz_terraform/dev/front-end-tf/ec2/
-
-tfi
-tfp
-tpa
+helm repo add istio https://istio-release.storage.googleapis.com/charts
+helm repo update
+kubectl create namespace istio-system
+helm install istio-base istio/base -n istio-system
+helm install istiod istio/istiod -n istio-system --wait
 ```
 
-And that's it, your all three micro services are deployed.
+Now the helm components are added we need to deploy the application. We have seggregated the entire setup into four components -
+
+1. Namespace-Builder : To create the ```interview``` namespace.
+   ```cd ../kubernetes/crp2-tech-challenge/1-helm-debug/helm/namespace
+helm upgrade --install --values values.yaml namespace-builder .```
+
+2. App-Builder : To deploy the de/fr/es as separate deployments 
+
+```
+cd ../app/
+
+helm upgrade --install --values values.yaml --values de/values.yaml app-de  .
+helm upgrade --install --values values.yaml --values es/values.yaml app-es .
+helm upgrade --install --values values.yaml --values fr/values.yaml app-fr .
+```
+
+3. service-app: To deploy the service that will send the requests to the corresponding pods.
+
+```
+cd ../service
+helm upgrade --install --values values.yaml service-app .
+```
+4. Ingress-app: To deploy all the network components for the rerouting. 
+```
+cd ../ingress
+helm upgrade --install --values values.yaml ingress-app .
+```
+This contains four major parts
+
+  - The virtual service: To configure the routing policy. We are using one service, so one virtual service is enough.
+  - Destination rule: To define the subsets (define the pod labels).
+  - Istio Ingress - To accept traffic from outside the cluster.
+  - Gateway: To connect the ingress to the virtual service.
 
 

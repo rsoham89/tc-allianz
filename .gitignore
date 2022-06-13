@@ -2,5 +2,6 @@ id_rsa_interview
 id_rsa_interview.pub
 .terraform
 .terraform.lock.hcl
-.vscode
 terraform.tfstate
+istio-template-generate
+.vscode/

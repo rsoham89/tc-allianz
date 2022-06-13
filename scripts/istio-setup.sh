@@ -22,5 +22,5 @@ cd ../service
 helm upgrade --install --values values.yaml service-app .
 
 
-cd ../ingress
+cd ../istio-network-elements
 helm upgrade --install --values values.yaml ingress-app .

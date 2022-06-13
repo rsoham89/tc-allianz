@@ -1,14 +1,14 @@
 apiVersion: networking.istio.io/v1alpha3
 kind: VirtualService
 metadata:
-  name: hello-world
-  namespace: interview
+  name: {{ .Values.vs.name }}
+  namespace: {{ .Values.vs.namespace }}
 spec:
   hosts:
     - hello-world.interview.svc.cluster.local
     - test.com
   gateways:
-    - hello-world-gateway
+    - {{ .Values.vs.gateway }}
   http:
     - match:
         - uri:
@@ -17,9 +17,9 @@ spec:
         uri: "/"
       route:
         - destination:
-            host: hello-world.interview.svc.cluster.local
+            host: {{ .Values.vs.host }}
             port:
-              number: 80
+              number: {{ .Values.vs.portNumber }}
     - match:
         - uri:
             prefix: "/de"
@@ -27,10 +27,10 @@ spec:
         uri: "/"
       route:
         - destination:
-            host: hello-world.interview.svc.cluster.local
+            host: {{ .Values.vs.host }} 
             port:
-              number: 80
-            subset: de
+              number: {{ .Values.vs.portNumber }}
+            subset: {{ .Values.vs.subsetDE }}
     - match:
         - uri:
             prefix: "/fr"
@@ -38,10 +38,10 @@ spec:
         uri: "/"
       route:
         - destination:
-            host: hello-world.interview.svc.cluster.local
+            host: {{ .Values.vs.host }}
             port:
-              number: 80
-            subset: fr
+              number: {{ .Values.vs.portNumber }}
+            subset: {{ .Values.vs.subsetFR }}
     - match:
         - uri:
             prefix: "/es"
@@ -49,7 +49,7 @@ spec:
         uri: "/"
       route:
         - destination:
-            host: hello-world.interview.svc.cluster.local
+            host: {{ .Values.vs.host }}
             port:
-              number: 80
-            subset: es
+              number: {{ .Values.vs.portNumber }}
+            subset: {{ .Values.vs.subsetES }}

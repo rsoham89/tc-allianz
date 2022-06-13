@@ -1,0 +1,36 @@
+vs:
+  name: hello-world
+  namespace: interview
+  host: hello-world.interview.svc.cluster.local
+  portNumber: 80
+  subsetDE: de
+  subsetES: es
+  subsetFR: fr
+  gateway: hello-world-gateway
+
+dr:
+  name: hello-world
+  host: hello-world.interview.svc.cluster.local
+  namespace: interview
+  subsetDE: de
+  subsetES: es
+  subsetFR: fr
+
+gw:
+  name: hello-world-gateway
+  namespace: interview
+  ingressName: ingressgateway
+  portNumber: 80
+  portName: http
+  protocol: HTTP
+  serviceHost: hello-world.interview.svc.cluster.local
+
+ing:
+  name: istio-ingressgateway
+  namespace: interview
+  app: istio-ingressgateway
+  istio: ingressgateway
+  portNumber: 80
+  portName: http
+  protocol: TCP
+  targetPort: 80

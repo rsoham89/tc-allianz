@@ -1,0 +1,16 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  name: {{ .Values.gw.name }}
+  namespace: {{ .Values.gw.namespace }}
+spec:
+  selector:
+    istio: {{ .Values.gw.ingressName }}
+  servers:
+    - port:
+        number: {{ .Values.gw.portNumber }}
+        name: {{ .Values.gw.portName }}
+        protocol: {{ .Values.gw.protocol }}
+      hosts:
+        - {{ .Values.gw.serviceHost }}
+        - "test.com"

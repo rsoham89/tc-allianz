@@ -161,8 +161,10 @@ helm install istiod istio/istiod -n istio-system --wait
 Now the helm components are added we need to deploy the application. We have seggregated the entire setup into four components -
 
 1. Namespace-Builder : To create the ```interview``` namespace.
-   ```cd ../kubernetes/crp2-tech-challenge/1-helm-debug/helm/namespace
-helm upgrade --install --values values.yaml namespace-builder .```
+```
+cd ../kubernetes/crp2-tech-challenge/1-helm-debug/helm/namespace
+helm upgrade --install --values values.yaml namespace-builder .
+```
 
 2. App-Builder : To deploy the de/fr/es as separate deployments 
 

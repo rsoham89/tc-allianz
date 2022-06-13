@@ -5,3 +5,5 @@ id_rsa_interview.pub
 terraform.tfstate
 istio-template-generate
 .vscode/
+helm-till-vs
+helm_bak

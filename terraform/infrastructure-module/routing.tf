@@ -6,11 +6,7 @@ resource "aws_route_table" "public" {
     gateway_id = aws_internet_gateway.main.id
   }
 
-  tags = {
-    Name  = "public"
-    stage = "dev"
-    owner = "Soham"
-  }
+  tags = local.tags
 }
 
 resource "aws_route_table" "private1" {
@@ -20,11 +16,7 @@ resource "aws_route_table" "private1" {
     nat_gateway_id = aws_nat_gateway.nat_gw1.id
   }
 
-  tags = {
-    Name  = "private1"
-    stage = "dev"
-    owner = "Soham"
-  }
+  tags = local.tags
 }
 
 resource "aws_route_table" "private2" {
@@ -34,11 +26,7 @@ resource "aws_route_table" "private2" {
     nat_gateway_id = aws_nat_gateway.nat_gw2.id
   }
 
-  tags = {
-    Name  = "private2"
-    stage = "dev"
-    owner = "Soham"
-  }
+  tags = local.tags
 }
 
 # associations

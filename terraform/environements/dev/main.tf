@@ -1,3 +1,4 @@
 module "infra" {
-  source = "../../infrastructure/"
+  source = "../../infrastructure-module/"
+  stage = var.stage
 }

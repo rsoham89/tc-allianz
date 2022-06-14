@@ -1,3 +1,17 @@
+"""
+#--------------------------------------------------------------------------------------------
+#| Module: nodeStatus.py
+#| Function:   node_status()                                                               						   
+#| Author: Soham Roy                                                       					           
+#| Version: 1.0                                                                             						
+#| Date: 14.06.2022                                                                        						   
+#| Schedule run: On demand                                                                  					   
+#| Dependent file: None                                                          						   
+#| Purpose: This script checks the nodes of a cluster and prints its status 	   
+#| Example Run: bash init.sh
+#| Dependencies: kubernetes module should be installed pip3 install python-kubernetes                                                          					   
+#--------------------------------------------------------------------------------------------
+"""
 from kubernetes import client, config
 
 def node_status():

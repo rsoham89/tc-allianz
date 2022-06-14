@@ -1,44 +1,41 @@
 from kubernetes import client, config, watch
-import os
+from model import Nodes
 
-# Configs can be set in Configuration class directly or using helper utility
-config.load_kube_config()
+def main():
+    # Configs can be set in Configuration class directly or using helper
+    # utility. If no argument provided, the config will be loaded from
+    # default location.
+    print("CHECKING NODE STATUS: ")
+    node_status()
+    print("CHECKING POD STATUS: ")
+    pod_usage()
 
-v1 = client.CoreV1Api()
+        
+    #print(v1.list_pod_for_all_namespaces())
+def node_status():
+    config.load_kube_config()
+    v1 = client.CoreV1Api()
+    node_details = v1.list_node()
+    node_name = []
+    for item in node_details.items:
+        node_name.append(item.metadata.name)
+    
+    for node in node_name:
+        nodes_resp = v1.read_node_status(node)
+        for item in nodes_resp.status.conditions:
+            print(f"message: {item.message}")
+            print(f"reason: {item.reason}")
+            print(f"status: {item.status}")
+            print(f"type: {item.type}")
 
-w = watch.Watch()
-if (os.getenv("NODE_HOSTNAME") is None):
-    sys.exit("NODE_HOSTNAME is not defined")
-hostName = os.getenv("NODE_HOSTNAME")
-pendingPods = []
-runningPods = []
-failedPods = []
-deletingPods = []
-
-for event in w.stream(v1.list_namespaced_pod, namespace = "default"):
-    updatedPod = event["object"]
-
-    if updatedPod.spec.node_name != hostName:
-        continue
-
-    podId = updatedPod.metadata.name
-
-    if podId in pendingPods: pendingPods.remove(podId)
-    if podId in failedPods: failedPods.remove(podId)
-    if podId in runningPods: runningPods.remove(podId)
-    if podId in deletingPods: deletingPods.remove(podId)
-
-    # If the event is a delete event, ignore it
-    if event["type"] == "DELETED":
-        if pod.metadata.deletion_timestamp is not None:
-            deletingPods.append(podId)
-        elif pod.status.phase == "Pending":
-            if (pod.status.container_statuses is not None and 
-                    pod.status.container_statuses[0].state is not None and 
-                    pod.status.container_statuses[0].state.waiting is not None and 
-                    pod.status.container_statuses[0].state.waiting.message is not None):
-                failedPods.append(podId)
-            else:
-                pendingPods.append(podId)
-        elif pod.status.phase == "Running":
-            runningPods.append(podId)
+def pod_usage():
+    config.load_kube_config()
+    api = client.CustomObjectsApi()
+    resource = api.list_namespaced_custom_object(group="metrics.k8s.io",version="v1beta1", namespace="interview", plural="pods")
+    for item in resource['items']:
+        print(f"pod name: {item['metadata']['name']}")
+        for container in item['containers']:
+            print(f"container name: {container['name']}")
+            print(f"CPU Usage: {container['usage']['cpu']}")
+            print(f"Memory Usage: {container['usage']['memory']}")
+main()

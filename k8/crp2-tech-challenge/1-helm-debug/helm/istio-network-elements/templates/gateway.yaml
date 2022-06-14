@@ -12,5 +12,4 @@ spec:
         name: {{ .Values.gw.portName }}
         protocol: {{ .Values.gw.protocol }}
       hosts:
-        - {{ .Values.gw.serviceHost }}
-        - "test.com"
+        - "*"

@@ -5,10 +5,9 @@ metadata:
   namespace: {{ .Values.vs.namespace }}
 spec:
   hosts:
-    - hello-world.interview.svc.cluster.local
-    - test.com
+    - "*"
   gateways:
-    - {{ .Values.vs.gateway }}
+    - {{ .Values.gw.namespace }}/{{ .Values.gw.name }}
   http:
     - match:
         - uri:
@@ -27,9 +26,9 @@ spec:
         uri: "/"
       route:
         - destination:
-            host: {{ .Values.vs.host }} 
+            host: {{ .Values.vs.host }}
             port:
-              number: {{ .Values.vs.portNumber }}
+              number:  {{ .Values.vs.portNumber }}
             subset: {{ .Values.vs.subsetDE }}
     - match:
         - uri:

@@ -9,3 +9,5 @@ helm-till-vs
 helm_bak
 model
 __pycache__
+to_delete
+istio-1.14.1

@@ -2,7 +2,7 @@
 
 ### Requirement Gathering and Analysis
 
-This document guide is for the MVP solution of three micro-services ( all private ). The cloud chosen is AWS. As of now the architecture needed is for only one environment with code to be built in a way that this can be used to create the infrastructure for production as well. The apps are deployed on EKS cluster.
+This document guide is for the MVP solution of the microservice hello-world. The cloud chosen is AWS. As of now the architecture needed is for only one environment with code to be built in a way that this can be used to create the infrastructure for production as well. The apps are deployed on EKS cluster.
 
 For code reusability [**Terraform**](https://www.terraform.io) has been chosen as IaC.
 
@@ -65,17 +65,19 @@ terraform version
 kubectl version short
 # for aws-cli version
 aws --version
+# for helm version
+helm version
 
 ```
 
-Next step is to ensure that you have configured your aws profile so that can run terraform and packer
+Next step is to ensure that you have configured your aws profile so that can run terraform
 
 ```bash
 
 # aws configure
   <provide your access id>
   <provide your secret id>
-  <provide your regionl ( eu-central-1)>
+  <provide your region ( eu-central-1)>
   <provide default type as json>
 ```
 
@@ -93,38 +95,67 @@ cd tc-allianz/scripts
 bash init.sh
 
 ```
-This will take 10-12 minutes of time. Once the terraform completes creating the infrastructure you can run 
+
+The *init.sh* script first creates the backend s3 bucket and then creates the infrastructure for the kubernetes deployment. The code for the infrastructure has been modularized and can be used for various environments. As of now only the stage = dev is deployed.
+
+This will take 10-12 minutes of time. Once the terraform completes creating the infrastructure we can run *terraform state list* to list all the aws objects just created via terraform.
 
 ```
 cd ../terraform/infrastructure/
 terraform state list
-```
-To list all the aws objects you just created via terraform.
 
-Once this is ready run the istio-setup.sh command to create all the kubernetes components
+module.infra.aws_eip.nat1
+module.infra.aws_eip.nat2
+module.infra.aws_eks_cluster.eks
+module.infra.aws_eks_node_group.nodes
+module.infra.aws_iam_role.eks_cluster
+module.infra.aws_iam_role.node_groups
+module.infra.aws_iam_role_policy_attachment.eks_cluster_policy
+module.infra.aws_iam_role_policy_attachment.eks_cni_policy
+module.infra.aws_iam_role_policy_attachment.eks_ecr_policy
+module.infra.aws_iam_role_policy_attachment.eks_node_policy
+module.infra.aws_internet_gateway.main
+module.infra.aws_nat_gateway.nat_gw1
+module.infra.aws_nat_gateway.nat_gw2
+module.infra.aws_network_acl.main_nacl
+module.infra.aws_route_table.private1
+module.infra.aws_route_table.private2
+module.infra.aws_route_table.public
+module.infra.aws_route_table_association.private1
+module.infra.aws_route_table_association.private2
+module.infra.aws_route_table_association.public1
+module.infra.aws_route_table_association.public2
+module.infra.aws_subnet.private_1
+module.infra.aws_subnet.private_2
+module.infra.aws_subnet.public_1
+module.infra.aws_subnet.public_2
+module.infra.aws_vpc.main
+```
+
+As of now the plan is to expose the application via Internet facing ALB hence I have not used any bastion server. However I have added the bastion server code as well if the requirement comes for internal-ALB. 
+
+Once the infrastructure is ready run the istio-setup.sh command to create all the kubernetes components
 
 ```bash
 cd -
 bash istio-setup.sh
-
 ```
 
-**Lets discuss in details what components are created**
+## Lets discuss in details what components are created
 
 ```bash
 $ cat istio-setup.sh
 
 aws eks update-kubeconfig --name app_cluster
-helm repo add istio https://istio-release.storage.googleapis.com/charts
-helm repo update
+
+curl -L https://istio.io/downloadIstio | sh -
+cd istio-1.14.1/
 kubectl create namespace istio-system
-helm install istio-base istio/base -n istio-system
-helm install istiod istio/istiod -n istio-system --wait
+helm install istio-base manifests/charts/base -n istio-system
+helm install istiod manifests/charts/istio-control/istio-discovery -n istio-system
+helm install istio-ingress manifests/charts/gateways/istio-ingress -n istio-system
 
-
-
-
-cd ../k8/crp2-tech-challenge/1-helm-debug/helm/namespace
+cd ../../k8/crp2-tech-challenge/1-helm-debug/helm/namespace
 helm upgrade --install --values values.yaml namespace-builder .
 
 cd ../app/
@@ -138,8 +169,9 @@ cd ../service
 helm upgrade --install --values values.yaml service-app .
 
 
-cd ../ingress
+cd ../istio-network-elements
 helm upgrade --install --values values.yaml ingress-app .
+kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
 ```
 
 The ```aws eks update-kubeconfig --name app_cluster``` configures the kubernetes config file with the eks cluster which is recently created.
@@ -147,16 +179,19 @@ Once the cluster is configured the next step is to create the istio components. 
 
 - istio-base
 - istiod
-
+- istio-ingress
 The below section takes care of that - 
 
 ```
-helm repo add istio https://istio-release.storage.googleapis.com/charts
-helm repo update
+curl -L https://istio.io/downloadIstio | sh -
+cd istio-1.14.1/
 kubectl create namespace istio-system
-helm install istio-base istio/base -n istio-system
-helm install istiod istio/istiod -n istio-system --wait
+helm install istio-base manifests/charts/base -n istio-system
+helm install istiod manifests/charts/istio-control/istio-discovery -n istio-system
+helm install istio-ingress manifests/charts/gateways/istio-ingress -n istio-system
 ```
+
+If we plan to create an **internal ALB** then we need to add the annotation **"service.beta.kubernetes.io/aws-load-balancer-internal": "true**" in *scripts/istio-1.14.1/manifests/charts/gateways/istio-ingress/templates/service.yaml* .
 
 Now the helm components are added we need to deploy the application. We have seggregated the entire setup into four components -
 
@@ -187,12 +222,21 @@ helm upgrade --install --values values.yaml service-app .
 cd ../ingress
 helm upgrade --install --values values.yaml ingress-app .
 ```
-This contains four major parts
+This contains three major parts
 
   - The virtual service: To configure the routing policy. We are using one service, so one virtual service is enough.
   - Destination rule: To define the subsets (define the pod labels).
-  - Istio Ingress - To accept traffic from outside the cluster.
   - Gateway: To connect the ingress to the virtual service.
+
+Last but not the least the custom metric api extension is installed for monitoring the metrices
+
+```
+kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+```
+
+The reason why I seggregated this is because considering the scope of CI/CD is not here, the sequence of events should adhere to the CI/CD tasks. PFB the diagram for the same:
+ 
+![diagram](cicd.png)
 
 ## Application LLD Description
 
@@ -274,11 +318,44 @@ This ensured if the service is requested anywhere from the service mesh then it 
 
 The next step was to create the ingress and the gateway. We had to configure the virtual service to add the gateway 
 ```gateways: - hello-world-gateway``` and in the gateway the ingress controller was added as well as the virtual service.
-The ingress controller is a simple one that gets request on top of the nodeport and route to the hello-world  service to port 80.
+The ingress controller is public facing one. If we plan to create an **internal ALB** then we need to add the annotation **"service.beta.kubernetes.io/aws-load-balancer-internal": "true**" in *scripts/istio-1.14.1/manifests/charts/gateways/istio-ingress/templates/service.yaml*.
 
 **Hiccup**
 
-In order to create an internal ALB even after annotation and the tag in the aws subnet, the tag ```kubernetes.io/cluster/app_cluster``` needed to be changed from **shared** to **owned**. Else the Load Balancder service was generating with External IP in the *pending* state.
+1. In order to create an internal ALB even after annotation and the tag in the aws subnet, the tag ```kubernetes.io/cluster/app_cluster``` needed to be changed from **shared** to **owned**. Else the Load Balancder service was generating with External IP in the *pending* state.
+
+2. The target of the service was changed from 80 to 8000 as the pods were running in port 8000 (As a part of technical challenge)
+
+**de**
+
+![diagram](de.png)
+
+**es**
+
+![diagram](es.png)
+
+**fr**
+
+![diagram](fr.png)
+
+**eu**
+
+![diagram](eu.png)
+
+## Monitoring
+
+I've kept the monitoring part pretty rudimentary. The ask was to get the performance parameters / status from the EKS cluster components without using kubectl. I've used module  **python-kubernetes** for the same.
+
+As of now there are two checks that are happening 
+- Listing node and its status
+- Listing pod in the ```interview```  namespace and its utilization.
+
+and printing the corresponding values.
+
+All the functions of the CoreV1Api is listed here https://raw.githubusercontent.com/kubernetes-client/python/master/kubernetes/docs/CoreV1Api.md.
+
+As of now I have used only two **list_node()** and **CustomObjectsApi()**. In the future this can be written in a Flask app and can be made API based to retrieve the data.
+
 
 
 

@@ -1,2 +1,0 @@
-class Deployments:
-    pass

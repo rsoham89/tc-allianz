@@ -1,2 +1,0 @@
-class Namespaces:
-    pass

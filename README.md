@@ -28,7 +28,7 @@ Please note not to use Helm version 3.9 as that has some potential bugs with the
 
 Please refer to the  architecture diagram
 
-![diagram](allianz_application_architecture.png)
+![diagram](images/(allianz_application_architecture.png)
 
 ### Detailed analysis:
 
@@ -51,7 +51,7 @@ The **istio-system** namespace contains the component of the istio service mesh 
 
 All the apps are exposed on port **8000** and the service is exposed on port **80**.
 
-![diagram](namespaces.png)
+![diagram](images/(namespaces.png)
 
 ## Deployment Guide
 
@@ -236,7 +236,7 @@ kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/late
 
 The reason why I seggregated this is because considering the scope of CI/CD is not here, the sequence of events should adhere to the CI/CD tasks. PFB the diagram for the same:
  
-![diagram](cicd.png)
+![diagram](images/(cicd.png)
 
 ## Application LLD Description
 
@@ -328,19 +328,19 @@ The ingress controller is public facing one. If we plan to create an **internal 
 
 **de**
 
-![diagram](de.png)
+![diagram](images/(de.png)
 
 **es**
 
-![diagram](es.png)
+![diagram](images/(es.png)
 
 **fr**
 
-![diagram](fr.png)
+![diagram](images/(fr.png)
 
 **eu**
 
-![diagram](eu.png)
+![diagram](images/(eu.png)
 
 ## Monitoring
 

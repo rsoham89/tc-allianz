@@ -8,3 +8,4 @@ istio-template-generate
 helm-till-vs
 helm_bak
 model
+__pycache__

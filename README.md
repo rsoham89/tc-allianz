@@ -219,7 +219,7 @@ helm upgrade --install --values values.yaml service-app .
 ```
 4. Ingress-app: To deploy all the network components for the rerouting. 
 ```
-cd ../ingress
+cd ../istio-network-elements
 helm upgrade --install --values values.yaml ingress-app .
 ```
 This contains three major parts

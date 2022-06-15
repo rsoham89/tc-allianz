@@ -12,3 +12,4 @@ __pycache__
 to_delete
 istio-1.14.1
 terraform.tfstate.backup
+.terraform.tfstate.lock.info

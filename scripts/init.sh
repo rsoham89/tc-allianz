@@ -17,6 +17,6 @@ terraform apply --auto-approve
 
 # Create vpc-module and eks cluster
 echo "Create vpc-module and eks cluster"
-cd ../network-components/
+cd ../environements/dev/
 terraform init
 terraform apply --auto-approve
